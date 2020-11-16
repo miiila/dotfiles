@@ -1,5 +1,6 @@
 set nocompatible              " be iMproved, required
 filetype off                  " required
+set completeopt=menuone,noinsert,noselect
 
 " Specify a directory for plugins
 " - For Neovim: stdpath('data') . '/plugged'
@@ -8,12 +9,15 @@ call plug#begin('~/.vim/plugged')
 
 Plug 'joshdick/onedark.vim'
 Plug 'sheerun/vim-polyglot'
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'dense-analysis/ale'
 Plug 'airblade/vim-gitgutter'
 Plug 'preservim/nerdcommenter'
+Plug 'neovim/nvim-lspconfig'
+Plug 'nvim-lua/completion-nvim'
+Plug 'tjdevries/lsp_extensions.nvim'
 
 call plug#end()
 
@@ -69,11 +73,13 @@ filetype plugin indent on
 
 let mapleader = " "
 " Keymaps
-nmap <leader>rn <Plug>(coc-rename)
-nmap <leader>gd <Plug>(coc-definition)
-nmap <leader>gy <Plug>(coc-type-definition)
-nmap <leader>gi <Plug>(coc-implementation)
-nmap <leader>gr <Plug>(coc-references)
+nnoremap <leader>rn :lua vim.lsp.buf.rename()<CR>
+nnoremap <leader>gd :lua vim.lsp.buf.definition()<CR>
+nnoremap <leader>gy :lua vim.lsp.buf.signature_help()<CR>
+nnoremap <leader>gi :lua vim.lsp.buf.implementation()<CR>
+nnoremap <leader>gr :lua vim.lsp.buf.references()<CR>
+nnoremap <leader>gh :lua vim.lsp.buf.hover()<CR>
+nnoremap <leader>gc :lua vim.lsp.buf.code_action()<CR>
 nnoremap <C-p> :GFiles<CR>
 noremap <leader>s :Rg<CR>
 nmap <leader>; :Buffers<CR>
@@ -85,6 +91,11 @@ let g:ale_fixers = {
 \   'python': ['reorder-python-imports', 'yapf'],
 \}
 let g:ale_fix_on_save = 1
+
+" LSP
+let g:completion_matching_strategy_list = ['exact', 'substring', 'fuzzy']
+lua require'nvim_lsp'.tsserver.setup{ on_attach=require'completion'.on_attach }
+lua require'nvim_lsp'.rust_analyzer.setup{ on_attach=require'completion'.on_attach }
 
 " Random
 com! W w

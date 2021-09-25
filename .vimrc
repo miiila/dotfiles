@@ -18,6 +18,10 @@ Plug 'preservim/nerdcommenter'
 Plug 'neovim/nvim-lspconfig'
 Plug 'nvim-lua/completion-nvim'
 Plug 'tjdevries/lsp_extensions.nvim'
+Plug 'tpope/vim-fugitive'
+Plug 'puremourning/vimspector'
+Plug 'szw/vim-maximizer'
+Plug 'prettier/vim-prettier', { 'do': 'npm install' }
 
 call plug#end()
 
@@ -71,6 +75,9 @@ set smartindent
 " use language‐specific plugins for indenting (better):
 filetype plugin indent on
 
+" Vimspector
+let g:vimspector_enable_mappings = 'HUMAN'
+
 let mapleader = " "
 " Keymaps
 nnoremap <leader>rn :lua vim.lsp.buf.rename()<CR>
@@ -94,9 +101,12 @@ let g:ale_fix_on_save = 1
 
 " LSP
 let g:completion_matching_strategy_list = ['exact', 'substring', 'fuzzy']
-lua require'nvim_lsp'.tsserver.setup{ on_attach=require'completion'.on_attach }
-lua require'nvim_lsp'.rust_analyzer.setup{ on_attach=require'completion'.on_attach }
+"lua require'lspconfig'.tsserver.setup{ on_attach=require'completion'.on_attach }
+"lua require'lspconfig'.rust_analyzer.setup{ on_attach=require'completion'.on_attach }
 
 " Random
 com! W w
 let g:fzf_layout = { 'window': { 'width': 0.8, 'height': 0.8 } }
+let g:prettier#autoformat = 1
+let g:prettier#autoformat_require_pragma = 0
+let g:prettier#exec_cmd_async = 1

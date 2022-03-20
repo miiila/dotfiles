@@ -1,5 +1,6 @@
 set nocompatible              " be iMproved, required
 filetype off                  " required
+"set completeopt=menu,menuone,noselect
 set completeopt=menuone,noinsert,noselect
 
 " Specify a directory for plugins
@@ -8,36 +9,120 @@ set completeopt=menuone,noinsert,noselect
 call plug#begin('~/.vim/plugged')
 
 Plug 'joshdick/onedark.vim'
-Plug 'sheerun/vim-polyglot'
-" Plug 'neoclide/coc.nvim', {'branch': 'release'}
-Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
-Plug 'junegunn/fzf.vim'
-Plug 'dense-analysis/ale'
-Plug 'airblade/vim-gitgutter'
-Plug 'preservim/nerdcommenter'
 Plug 'neovim/nvim-lspconfig'
-Plug 'nvim-lua/completion-nvim'
-Plug 'tjdevries/lsp_extensions.nvim'
-Plug 'tpope/vim-fugitive'
-Plug 'puremourning/vimspector'
-Plug 'szw/vim-maximizer'
-Plug 'prettier/vim-prettier', { 'do': 'npm install' }
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-buffer'
+Plug 'hrsh7th/nvim-cmp'
+Plug 'preservim/nerdcommenter'
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim'
 
+" For vsnip users.
+Plug 'hrsh7th/cmp-vsnip'
+Plug 'hrsh7th/vim-vsnip'
 call plug#end()
 
-"Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
-"If you're using tmux version 2.2 or later, you can remove the outermost $TMUX check and use tmux's 24-bit color support
-"(see < http://sunaku.github.io/tmux-24bit-color.html#usage > for more information.)
-if (has("nvim"))
-	"For Neovim 0.1.3 and 0.1.4 < https://github.com/neovim/neovim/pull/2198 >
-  let $NVIM_TUI_ENABLE_TRUE_COLOR=1
-endif
-"For Neovim > 0.1.5 and Vim > patch 7.4.1799 < https://github.com/vim/vim/commit/61be73bb0f965a895bfb064ea3e55476ac175162 >
-"Based on Vim patch 7.4.1770 (`guicolors` option) < https://github.com/vim/vim/commit/8a633e3427b47286869aa4b96f2bfc1fe65b25cd >
-" < https://github.com/neovim/neovim/wiki/Following-HEAD#20160511 >
-if (has("termguicolors"))
-  set termguicolors
-endif
+lua << EOF
+ -- Setup nvim-cmp.
+  local cmp = require'cmp'
+
+  cmp.setup({
+    snippet = {
+      expand = function(args)
+        -- For `vsnip` user.
+        vim.fn["vsnip#anonymous"](args.body)
+
+        -- For `luasnip` user.
+        -- require('luasnip').lsp_expand(args.body)
+
+        -- For `ultisnips` user.
+        -- vim.fn["UltiSnips#Anon"](args.body)
+      end,
+    },
+    mapping = {
+      ['<C-d>'] = cmp.mapping.scroll_docs(-4),
+      ['<C-f>'] = cmp.mapping.scroll_docs(4),
+      ['<C-Space>'] = cmp.mapping.complete(),
+      ['<C-e>'] = cmp.mapping.close(),
+      ['<CR>'] = cmp.mapping.confirm({ select = true }),
+    },
+    sources = {
+      { name = 'nvim_lsp' },
+
+      -- For vsnip user.
+      { name = 'vsnip' },
+
+      -- For luasnip user.
+      -- { name = 'luasnip' },
+
+      -- For ultisnips user.
+      -- { name = 'ultisnips' },
+
+      { name = 'buffer' },
+    }
+  })
+
+ -- Setup lspconfig.
+local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+require'lspconfig'.pyright.setup {
+	capabilities = capabilities
+}
+
+require 'lspconfig'.gopls.setup {
+    cmd = {"gopls", "serve"},
+    settings = {
+      gopls = {
+        analyses = {
+          unusedparams = true,
+        },
+        staticcheck = true,
+      },
+    },
+    capabilities = capabilities
+  }
+
+require'lspconfig'.rust_analyzer.setup{{
+    on_attach=on_attach,
+    settings = {
+        ["rust-analyzer"] = {
+            assist = {
+                importGranularity = "module",
+                importPrefix = "by_self",
+            },
+            cargo = {
+                loadOutDirsFromCheck = true
+            },
+            procMacro = {
+                enable = true
+            },
+        }
+    }
+}}
+EOF
+
+augroup GO_LSP
+	autocmd!
+	autocmd BufWritePre *.go :silent! lua vim.lsp.buf.formatting()
+augroup END
+
+let mapleader = " "
+nnoremap <leader>gd :lua vim.lsp.buf.definition()<CR>
+nnoremap <leader>gi :lua vim.lsp.buf.implementation()<CR>
+nnoremap <leader>gsh :lua vim.lsp.buf.signature_help()<CR>
+nnoremap <leader>grr :lua vim.lsp.buf.references()<CR>
+nnoremap <leader>rn :lua vim.lsp.buf.rename()<CR>
+nnoremap <leader>gh :lua vim.lsp.buf.hover()<CR>
+nnoremap <leader>gca :lua vim.lsp.buf.code_action()<CR>
+nnoremap <leader>gsd :lua vim.lsp.diagnostic.show_line_diagnostics(); vim.lsp.util.show_line_diagnostics()<CR>
+nnoremap <leader>gn :lua vim.lsp.diagnostic.goto_next()<CR>
+nnoremap <leader>gll :call LspLocationList()<CR>
+
+" Find files using Telescope command-line sugar.
+nnoremap <C-p> <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>; <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
 
 syntax on
 colorscheme onedark
@@ -72,41 +157,5 @@ set autoindent
 set smartindent
 " a stricter alternative which works better for the C language:
 "set cindent
-" use language‐specific plugins for indenting (better):
-filetype plugin indent on
-
-" Vimspector
-let g:vimspector_enable_mappings = 'HUMAN'
-
-let mapleader = " "
-" Keymaps
-nnoremap <leader>rn :lua vim.lsp.buf.rename()<CR>
-nnoremap <leader>gd :lua vim.lsp.buf.definition()<CR>
-nnoremap <leader>gy :lua vim.lsp.buf.signature_help()<CR>
-nnoremap <leader>gi :lua vim.lsp.buf.implementation()<CR>
-nnoremap <leader>gr :lua vim.lsp.buf.references()<CR>
-nnoremap <leader>gh :lua vim.lsp.buf.hover()<CR>
-nnoremap <leader>gc :lua vim.lsp.buf.code_action()<CR>
-nnoremap <C-p> :GFiles<CR>
-noremap <leader>s :Rg<CR>
-nmap <leader>; :Buffers<CR>
-
-" ALE Config
-let g:ale_linters = {'python': ['flake8', 'pylint']}
-let g:ale_fixers = {
-\   '*': ['remove_trailing_lines', 'trim_whitespace'],
-\   'python': ['reorder-python-imports', 'yapf'],
-\}
-let g:ale_fix_on_save = 1
-
-" LSP
-let g:completion_matching_strategy_list = ['exact', 'substring', 'fuzzy']
-"lua require'lspconfig'.tsserver.setup{ on_attach=require'completion'.on_attach }
-"lua require'lspconfig'.rust_analyzer.setup{ on_attach=require'completion'.on_attach }
-
-" Random
-com! W w
-let g:fzf_layout = { 'window': { 'width': 0.8, 'height': 0.8 } }
-let g:prettier#autoformat = 1
-let g:prettier#autoformat_require_pragma = 0
-let g:prettier#exec_cmd_async = 1
+" allow unsaved buffers
+set hidden

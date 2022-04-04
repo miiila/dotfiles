@@ -2,24 +2,46 @@ set nocompatible              " be iMproved, required
 filetype off                  " required
 "set completeopt=menu,menuone,noselect
 set completeopt=menuone,noinsert,noselect
+"let g:python3_host_prog = $HOME . '/.local/venv/nvim/bin/python'
+let g:python3_host_prog = '/opt/homebrew/bin/python3'
 
 " Specify a directory for plugins
 " - For Neovim: stdpath('data') . '/plugged'
 " - Avoid using standard Vim directory names like 'plugin'
 call plug#begin('~/.vim/plugged')
 
+" Theme
 Plug 'joshdick/onedark.vim'
+
+" Autocomplete and LSP
 Plug 'neovim/nvim-lspconfig'
 Plug 'hrsh7th/cmp-nvim-lsp'
 Plug 'hrsh7th/cmp-buffer'
 Plug 'hrsh7th/nvim-cmp'
-Plug 'preservim/nerdcommenter'
-Plug 'nvim-lua/plenary.nvim'
-Plug 'nvim-telescope/telescope.nvim'
+Plug 'hrsh7th/cmp-path'
 
-" For vsnip users.
+" Required by cmp
 Plug 'hrsh7th/cmp-vsnip'
 Plug 'hrsh7th/vim-vsnip'
+
+" Coding tools
+Plug 'preservim/nerdcommenter'
+Plug 'airblade/vim-gitgutter'
+
+" FZF
+Plug 'nvim-telescope/telescope.nvim'
+Plug 'nvim-lua/plenary.nvim'
+
+" Syntax highligting
+Plug 'cespare/vim-toml'
+Plug 'stephpy/vim-yaml'
+"Plug 'rust-lang/rust.vim'
+"Plug 'godlygeek/tabular'
+Plug 'plasticboy/vim-markdown'
+
+"Python
+Plug 'averms/black-nvim', {'do': ':UpdateRemotePlugins'}
+
 call plug#end()
 
 lua << EOF
@@ -32,11 +54,6 @@ lua << EOF
         -- For `vsnip` user.
         vim.fn["vsnip#anonymous"](args.body)
 
-        -- For `luasnip` user.
-        -- require('luasnip').lsp_expand(args.body)
-
-        -- For `ultisnips` user.
-        -- vim.fn["UltiSnips#Anon"](args.body)
       end,
     },
     mapping = {
@@ -100,6 +117,8 @@ require'lspconfig'.rust_analyzer.setup{{
 }}
 EOF
 
+autocmd BufWritePre <buffer> :call BlackSync()
+
 augroup GO_LSP
 	autocmd!
 	autocmd BufWritePre *.go :silent! lua vim.lsp.buf.formatting()
@@ -122,6 +141,11 @@ nnoremap <C-p> <cmd>Telescope find_files<cr>
 nnoremap <leader>fg <cmd>Telescope live_grep<cr>
 nnoremap <leader>; <cmd>Telescope buffers<cr>
 nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
+"Random remaps
+:command W w
+nnoremap <buffer><silent> <c-q> <cmd>call Black()<cr>
+inoremap <buffer><silent> <c-q> <cmd>call Black()<cr>
 
 
 syntax on
@@ -159,3 +183,5 @@ set smartindent
 "set cindent
 " allow unsaved buffers
 set hidden
+" update for gitgutters and other real time glitters
+set updatetime=100

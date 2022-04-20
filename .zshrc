@@ -105,8 +105,5 @@ alias python='python3'
 alias vim='nvim'
 
 
-export HEROKU_API_KEY=597b4d16-624e-4ac1-b332-fe636728b052
-export HEROKU_EMAIL=mila.votradovec@gmail.com
-
 export PATH=$PATH:`go env GOPATH`/bin
 export LIBRARY_PATH=$LIBRARY_PATH:`brew --prefix`/lib

@@ -101,7 +101,27 @@ require("lazy").setup({
     'averms/black-nvim',
     build = ':UpdateRemotePlugins'
   },
-  'mhinz/vim-mix-format'
+  {
+  "nvim-neotest/neotest",
+    dependencies = {
+      "nvim-neotest/nvim-nio",
+      "nvim-lua/plenary.nvim",
+      "antoinemadec/FixCursorHold.nvim",
+      "nvim-treesitter/nvim-treesitter",
+      "nvim-neotest/neotest-python",
+    }
+  },
+  'mhinz/vim-mix-format',
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    branch = "v3.x",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
+      "MunifTanjim/nui.nvim",
+      -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
+    }
+  }
 })
 
 -- LSP and Completion Setup
@@ -183,6 +203,14 @@ lspconfig.clangd.setup{ init_options = {
     fallbackFlags = { '-std=c++20' },
   }
 }
+lspconfig.ruff.setup {
+  init_options = {
+    settings = {
+      -- Any extra CLI arguments for `ruff` go here.
+      args = {},
+    }
+  }
+}
 
 -- [[ Configure Treesitter ]]
 -- See `:help nvim-treesitter`
@@ -252,6 +280,11 @@ vim.defer_fn(function()
     },
   }
 end, 0)
+  require("neotest").setup({
+  adapters = {
+    require("neotest-python")
+  }
+})
 
 
 -- Autocommands

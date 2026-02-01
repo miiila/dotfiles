@@ -61,7 +61,13 @@ require("lazy").setup({
   'joshdick/onedark.vim',
 
   -- Autocomplete and LSP
+  {
   'neovim/nvim-lspconfig',
+    dependencies = {
+      "williamboman/mason.nvim",
+      "williamboman/mason-lspconfig.nvim"
+    },
+  },
   'hrsh7th/cmp-nvim-lsp',
   'hrsh7th/cmp-buffer',
   'hrsh7th/nvim-cmp',
@@ -98,10 +104,6 @@ require("lazy").setup({
 
   -- Python
   {
-    'averms/black-nvim',
-    build = ':UpdateRemotePlugins'
-  },
-  {
   "nvim-neotest/neotest",
     dependencies = {
       "nvim-neotest/nvim-nio",
@@ -121,7 +123,42 @@ require("lazy").setup({
       "MunifTanjim/nui.nvim",
       -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
     }
-  }
+  },
+   -- DAP (Debug Adapter Protocol) plugins
+  {
+    'mfussenegger/nvim-dap',
+  },
+  {
+    'rcarriga/nvim-dap-ui',
+    dependencies = { 'mfussenegger/nvim-dap' },
+  },
+  {
+    'theHamsta/nvim-dap-virtual-text',
+    dependencies = { 'mfussenegger/nvim-dap' },
+  },
+  {
+    'mfussenegger/nvim-dap-python',  -- Python adapter
+    dependencies = { 'mfussenegger/nvim-dap' },
+  },
+  {
+    'leoluz/nvim-dap-go',  -- Go adapter
+    dependencies = { 'mfussenegger/nvim-dap' },
+  },
+  {
+    "olimorris/codecompanion.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      },
+    opts = {
+    strategies = {
+      -- Change the default chat adapter and model
+      chat = {
+        adapter = "anthropic",
+        model = "claude-sonnet-4-20250514"
+        },
+      },
+    },
+  },
 })
 
 -- LSP and Completion Setup
@@ -153,6 +190,11 @@ cmp.setup({
 local capabilities = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities())
 
 -- Language Server Configurations
+require('mason').setup()
+local mason_lspconfig = require 'mason-lspconfig'
+mason_lspconfig.setup {
+    ensure_installed = { "pyright", "zls", "svelte" }
+}
 lspconfig.pyright.setup {
   capabilities = capabilities
 }
@@ -218,7 +260,7 @@ lspconfig.ruff.setup {
 vim.defer_fn(function()
   require('nvim-treesitter.configs').setup {
     -- Add languages to be installed here that you want installed for treesitter
-    ensure_installed = { 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript', 'vimdoc', 'vim', 'bash', 'kotlin', "elixir", "eex", "heex"  },
+    ensure_installed = { 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript', 'vimdoc', 'vim', 'bash', 'kotlin', "elixir", "eex", "heex", "svelte"  },
 
     -- Autoinstall languages that are not installed. Defaults to false (but you can change for yourself!)
     auto_install = false,
@@ -286,6 +328,105 @@ end, 0)
   }
 })
 
+-- DAP (Debug Adapter Protocol) Setup
+local dap = require('dap')
+local dapui = require('dapui')
+local dap_virtual_text = require('nvim-dap-virtual-text')
+
+-- Configure DAP UI
+dapui.setup({
+  icons = { expanded = "▾", collapsed = "▸", current_frame = "▸" },
+  mappings = {
+    -- Use a table to apply multiple mappings
+    expand = { "<CR>", "<2-LeftMouse>" },
+    open = "o",
+    remove = "d",
+    edit = "e",
+    repl = "r",
+    toggle = "t",
+  },
+  -- Expand lines larger than the window
+  -- Requires >= 0.7
+  expand_lines = vim.fn.has("nvim-0.7") == 1,
+  -- Layouts define sections of the screen to place windows.
+  -- The position can be "left", "right", "top" or "bottom".
+  -- The size specifies the height/width depending on position. It can be an Int
+  -- or a Float. Integer specifies height/width directly (i.e. 20 lines/columns) while
+  -- Float value specifies percentage (i.e. 0.3 - 30% of available lines/columns)
+  layouts = {
+    {
+      elements = {
+        -- Elements can be strings or table with id and size keys.
+        { id = "scopes", size = 0.25 },
+        "breakpoints",
+        "stacks",
+        "watches",
+      },
+      size = 40, -- 40 columns
+      position = "left",
+    },
+    {
+      elements = {
+        "repl",
+        "console",
+      },
+      size = 0.25, -- 25% of total lines
+      position = "bottom",
+    },
+  },
+  controls = {
+    -- Requires Neovim nightly (or 0.8 when released)
+    enabled = true,
+    -- Display controls in this element
+    element = "repl",
+    icons = {
+      pause = "",
+      play = "",
+      step_into = "",
+      step_over = "",
+      step_out = "",
+      step_back = "",
+      run_last = "",
+      terminate = "",
+    },
+  },
+  floating = {
+    max_height = nil, -- These can be integers or a float between 0 and 1.
+    max_width = nil, -- Floats will be treated as percentage of your screen.
+    border = "single", -- Border style. Can be "single", "double" or "rounded"
+    mappings = {
+      close = { "q", "<Esc>" },
+    },
+  },
+  windows = { indent = 1 },
+  render = {
+    max_type_length = nil, -- Can be integer or nil.
+    max_value_lines = 100, -- Can be integer or nil.
+  }
+})
+
+-- Configure DAP Virtual Text
+dap_virtual_text.setup({
+  enabled = true,
+  enabled_commands = true,
+  highlight_changed_variables = true,
+  highlight_new_as_changed = false,
+  show_stop_reason = true,
+  commented = false,
+  virt_text_pos = 'eol',
+  all_frames = false,
+  virt_lines = false,
+  virt_text_win_col = nil
+})
+
+-- Configure Python DAP
+-- -- Use the Python from our dedicated debugpy virtual environment
+local debugpy_python = vim.fn.expand('~/.debugpy-env/.venv/bin/python')
+require('dap-python').setup(debugpy_python)
+
+-- Load Docker remote debugging configuration
+require('dap-docker')
+
 
 -- Autocommands
 vim.api.nvim_create_augroup('GO_LSP', { clear = true })
@@ -297,6 +438,36 @@ vim.api.nvim_create_autocmd('BufWritePre', {
   end
 })
 
+-- DAP Event Listeners
+dap.listeners.after.event_initialized["dapui_config"] = function()
+  dapui.open()
+end
+--dap.listeners.before.event_terminated["dapui_config"] = function()
+  --dapui.close()
+--end
+--dap.listeners.before.event_exited["dapui_config"] = function()
+  --dapui.close()
+--end
+---- Instead, modify behavior to preserve the UI after termination
+dap.listeners.before.event_terminated["dapui_config"] = function()
+  -- Keep UI open, but add a message to the REPL
+  require('dap.repl').append('Program terminated. UI kept open for inspection.')
+end
+dap.listeners.before.event_exited["dapui_config"] = function()
+  -- Keep UI open, but add a message to the REPL
+  require('dap.repl').append('Program exited. UI kept open for inspection.')
+end
+
+-- DAP Keymappings
+vim.keymap.set('n', '<F5>', function() dap.continue() end, { desc = "Debug: Continue" })
+vim.keymap.set('n', '<F10>', function() dap.step_over() end, { desc = "Debug: Step Over" })
+vim.keymap.set('n', '<F11>', function() dap.step_into() end, { desc = "Debug: Step Into" })
+vim.keymap.set('n', '<F12>', function() dap.step_out() end, { desc = "Debug: Step Out" })
+vim.keymap.set('n', '<Leader>db', function() dap.toggle_breakpoint() end, { desc = "Debug: Toggle Breakpoint" })
+vim.keymap.set('n', '<Leader>dB', function() dap.set_breakpoint(vim.fn.input('Breakpoint condition: ')) end, { desc = "Debug: Set Conditional Breakpoint" })
+vim.keymap.set('n', '<Leader>dl', function() dap.run_last() end, { desc = "Debug: Run Last" })
+vim.keymap.set('n', '<Leader>dr', function() dap.repl.open() end, { desc = "Debug: Open REPL" })
+vim.keymap.set('n', '<Leader>dui', function() dapui.toggle() end, { desc = "Debug: Toggle UI" })
 
 -- LSP Keymaps
 local function set_lsp_keymaps()
@@ -308,12 +479,24 @@ local function set_lsp_keymaps()
   vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
   vim.keymap.set('n', '<leader>gh', vim.lsp.buf.hover, opts)
   vim.keymap.set('n', '<leader>gca', vim.lsp.buf.code_action, opts)
-  vim.keymap.set('n', '<leader>gsd', function()
-    vim.lsp.diagnostic.show_line_diagnostics()
-    vim.lsp.util.show_line_diagnostics()
-  end, opts)
-  -- vim.keymap.set('n', '<leader>gn', vim.lsp.diagnostic.goto_next, opts)
+  vim.keymap.set('n', '<leader>gsd', vim.diagnostic.open_float, opts)
+  vim.keymap.set('n', '<leader>gn', vim.diagnostic.goto_next, opts)
+  vim.keymap.set('n', '<leader>gp', vim.diagnostic.goto_prev, opts)
 end
+
+-- Configure diagnostics display
+vim.diagnostic.config({
+  virtual_text = true,      -- Show errors inline
+  signs = true,             -- Show signs in the gutter
+  underline = true,         -- Underline errors
+  update_in_insert = false, -- Don't update diagnostics in insert mode
+  severity_sort = true,     -- Sort by severity
+  float = {
+    border = "rounded",
+    source = "always",
+  },
+})
+
 
 set_lsp_keymaps()
 
